@@ -6,7 +6,7 @@ output: html_document
 ---
 #Add 1 paragraph describing your data set and 1 paragraph outlining your proposed in-class and out-of-class methods.
 
-The Dialect Survey uses a series of questions, including rhyming word pairs and vocabulary words, to explore the distribution of dialects in Americain. We have 122 survey responses from 47,472 people from different city, state and zip code areas.  
+The Dialect Survey uses a series of questions, including rhyming word pairs and vocabulary words, to explore the distribution of dialects in American. We have 122 survey responses from 47,472 people from different city, state and zip code areas. The majority of participants were from the east coast, and approximately a third of the particpants were in the 20-29 age range.
 
 In this project, we would use these data to fit a KNN classification model showing predicted class membership at each location in the US based on dialect. Our explanatory variable is zipcode and response is dialect. In addition, our second analysis will be based on a topic we haven't learned in class such as, neural networks to help us cluster, classify and recognize patterns of the data.  
 
