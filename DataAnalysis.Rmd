@@ -42,10 +42,49 @@ plot_usmap(regions="state")+labs(title="US Map")+
   geom_point(data = results, 
              aes(x = LAT, y =LNG, color=Q014), size = 2, alpha = I(0.7))
 
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showland = TRUE,
+  landcolor = toRGB("gray95"),
+  subunitcolor = toRGB("gray85"),
+  countrycolor = toRGB("gray85"),
+  countrywidth = 0.5,
+  subunitwidth = 0.5
+)
+
+p <- plot_geo(results, lat = ~lat, lon = ~long)  %>%
+  add_markers(
+    text = ~paste(airport, city, state, paste("Arrivals:", cnt), sep = "<br />"),
+    color = ~cnt, symbol = I("square"), size = I(8), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Incoming flights<br />February 2011") %>%
+  layout(
+    title = 'Most trafficked US airports<br />(Hover for airport)', geo = g
+  )
 
 
 
+USA<-map_data("world") %>% filter(region=="USA")
 
+
+# Libraries
+library(ggplot2)
+library(dplyr)
+ 
+# Get the world polygon and extract UK
+library(maps)
+USA <- map_data("world") %>% filter(region=="USA")
+
+# Get a data frame with longitude, latitude, and size of bubbles (a bubble = a city)
+data <- world.cities %>% filter(country.etc=="USA")
+
+# Left chart
+g<-ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
+  geom_point(data=results, aes(x=LNG, y=LAT, color=Q014), size=0.1) +
+  theme_void()+coord_map(xlim = c(-180, 180),ylim = c(18, 72))
+g
 ```
 
-
+##https://www.r-graph-gallery.com/330-bubble-map-with-ggplot2.html
