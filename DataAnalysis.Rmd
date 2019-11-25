@@ -39,51 +39,13 @@ lawyer_response_cleaned
 results<-left_join(x=lawyer_response_cleaned, y=zip_codes, by="ZIP", copy=FALSE)
 results
 
-map1<-plot_usmap(regions="state")+labs(title="US Map")+
-  theme(panel.background = element_rect(color="black", fill="lightblue"))+geom_point(data=results, aes(x=LNG, y=LAT, fill=Q014), size=0.1)
-
-
-                                                                                     
-
-
-
-g <- list(
-  scope = 'usa',
-  projection = list(type = 'albers usa'),
-  showland = TRUE,
-  landcolor = toRGB("gray95"),
-  subunitcolor = toRGB("gray85"),
-  countrycolor = toRGB("gray85"),
-  countrywidth = 0.5,
-  subunitwidth = 0.5
-)
-
-p <- plot_geo(results, lat = ~lat, lon = ~long)  %>%
-  add_markers(
-    text = ~paste(airport, city, state, paste("Arrivals:", cnt), sep = "<br />"),
-    color = ~cnt, symbol = I("square"), size = I(8), hoverinfo = "text"
-  ) %>%
-  colorbar(title = "Incoming flights<br />February 2011") %>%
-  layout(
-    title = 'Most trafficked US airports<br />(Hover for airport)', geo = g
-  )
-
-
-
-USA<-map_data("world") %>% filter(region=="USA")
-
-
 # Libraries
 library(ggplot2)
 library(dplyr)
  
-# Get the world polygon and extract UK
+# Get the world polygon and extract USA
 library(maps)
 USA <- map_data("world") %>% filter(region=="USA")
-#may want to use a function that shows us just US instead of "world" to fill blank space in graph
-
-# Get a data frame with longitude, latitude, and size of bubbles (a bubble = a city)
-data <- world.cities %>% filter(country.etc=="USA")
 
 # Left chart
 g<-ggplot() +
