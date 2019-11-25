@@ -16,6 +16,7 @@ dialect_survey<-read_csv("dialect_survey.csv")
 zip_codes<-read_csv("zipcodes.csv")
 library(tidyverse)
 library(GGally)
+install.packages("usmap")
 library(usmap)
 
 ##dataset with only ID, state, city, zip code, and answer to lawyer question
@@ -37,10 +38,19 @@ lawyer_response_cleaned
 results<-left_join(x=lawyer_response_cleaned, y=zip_codes, by="ZIP", copy=FALSE)
 results
 
-plot_usmap(regions="state")+labs(title="US Map")+
-  theme(panel.background = element_rect(color="black", fill="lightblue")) +
-  geom_point(data = results, 
-             aes(x = LAT, y =LNG, color=Q014), size = 2, alpha = I(0.7))
+map1<-plot_usmap(regions="state")+labs(title="US Map")+
+  theme(panel.background = element_rect(color="black", fill="lightblue"))+geom_point(data=results, aes(x=LNG, y=LAT, fill=Q014), size=0.1)
+
+
+                                                                                     #install.packages("ggmap")
+
+#install.packages("sp")
+#library(ggmap)
+
+#library(sp)
+#ggplot()+geom_map(data=results, map=us_map,aes(x=LAT, y=LNG, color=Q014),size=0.1, #color="red")+geom_point(data=results, aes (x=LAT, y=LNG), size=0.1, #color="steelblue")+coord_equal()+ggthemes::theme_map()
+
+
 
 
 
