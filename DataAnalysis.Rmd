@@ -11,6 +11,7 @@ The Dialect Survey uses a series of questions, including rhyming word pairs and 
 In this project, we would use these data to fit a KNN classification model showing predicted class membership at each location in the US based on dialect. Our explanatory variable is zipcode and response is dialect. In addition, our second analysis will be based on a topic we haven't learned in class such as, neural networks to help us cluster, classify and recognize patterns of the data.  
 
 ```{r setup, include=FALSE}
+library(readr)
 knitr::opts_chunk$set(echo = TRUE)
 dialect_survey<-read_csv("dialect_survey.csv")
 zip_codes<-read_csv("zipcodes.csv")
@@ -42,13 +43,7 @@ map1<-plot_usmap(regions="state")+labs(title="US Map")+
   theme(panel.background = element_rect(color="black", fill="lightblue"))+geom_point(data=results, aes(x=LNG, y=LAT, fill=Q014), size=0.1)
 
 
-                                                                                     #install.packages("ggmap")
-
-#install.packages("sp")
-#library(ggmap)
-
-#library(sp)
-#ggplot()+geom_map(data=results, map=us_map,aes(x=LAT, y=LNG, color=Q014),size=0.1, #color="red")+geom_point(data=results, aes (x=LAT, y=LNG), size=0.1, #color="steelblue")+coord_equal()+ggthemes::theme_map()
+                                                                                     
 
 
 
@@ -85,6 +80,7 @@ library(dplyr)
 # Get the world polygon and extract UK
 library(maps)
 USA <- map_data("world") %>% filter(region=="USA")
+#may want to use a function that shows us just US instead of "world" to fill blank space in graph
 
 # Get a data frame with longitude, latitude, and size of bubbles (a bubble = a city)
 data <- world.cities %>% filter(country.etc=="USA")
