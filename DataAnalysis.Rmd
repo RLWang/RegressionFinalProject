@@ -2,23 +2,27 @@
 title: "Data Analysis"
 author: "Katerina, Remy and Helena"
 date: "11/15/2019"
-output: html_document
+output: pdf_document 
+header-includes:
+   - \usepackage{booktabs}
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 #Add 1 paragraph describing your data set and 1 paragraph outlining your proposed in-class and out-of-class methods.
 
 The Dialect Survey uses a series of questions, including rhyming word pairs and vocabulary words, to explore the distribution of dialects in American. We have 122 survey responses from 47,472 people from different city, state and zip code areas. The majority of participants were from the east coast, and approximately a third of the particpants were in the 20-29 age range.
 
 In this project, we would use these data to fit a KNN classification model showing predicted class membership at each location in the US based on dialect. Our explanatory variable is zipcode and response is dialect. In addition, our second analysis will be based on a topic we haven't learned in class such as, neural networks to help us cluster, classify and recognize patterns of the data.  
 
-```{r setup, include=FALSE}
+```{r}
+# Libraries
+library(ggplot2)
+library(dplyr)
 library(readr)
-knitr::opts_chunk$set(echo = TRUE)
 dialect_survey<-read_csv("dialect_survey.csv")
 zip_codes<-read_csv("zipcodes.csv")
-library(tidyverse)
-library(GGally)
-install.packages("usmap")
-library(usmap)
 
 ##dataset with only ID, state, city, zip code, and answer to lawyer question
 lawyer_response<-dialect_survey[,c(1:4, 18)]
@@ -37,22 +41,25 @@ lawyer_response_cleaned<-mutate(lawyer_response, ZIP=substr(ZIP, 2, 6))
 lawyer_response_cleaned
 
 results<-left_join(x=lawyer_response_cleaned, y=zip_codes, by="ZIP", copy=FALSE)
-results
+results<-results[!is.na(results$LAT) & !is.na(results$LNG), ]
 
-# Libraries
-library(ggplot2)
-library(dplyr)
- 
+
+
+
 # Get the world polygon and extract USA
 library(maps)
 USA <- map_data("world") %>% filter(region=="USA")
 
+
 # Left chart
 g<-ggplot() +
   geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
-  geom_point(data=results, aes(x=LNG, y=LAT, color=Q014), size=0.1) +
-  theme_void()+coord_map(xlim = c(-180, 180),ylim = c(18, 72))
+  geom_point(data=results, aes(x=LNG, y=LAT, color=Q014), size=0.1) + 
+  theme_void()+coord_map(xlim = c(-180, -50),ylim = c(18, 72))
 g
+
+results %>% group_by(Q014)%>% count()
+
 ```
 
 ##https://www.r-graph-gallery.com/330-bubble-map-with-ggplot2.html
