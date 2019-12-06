@@ -108,6 +108,24 @@ for(i in seq_len(10)) {
 results2 %>%
   group_by(k) %>%
   summarize(mean(val_class_error))
+
+##Neural Network
+library(neuralnet)
+
+results_tiny_train<-results[1:10,]
+results_tiny_test<-results[11:20,]
+
+
+nn=neuralnet(Q014~LAT+LNG,data=results_tiny_train, hidden=3,act.fct = "logistic",
+                linear.output = FALSE)
+plot(nn)
+
+predict_nn=compute(nn, results_tiny_test)
+
+predict_nn$net.result
+
+
 ```
 
 ##https://www.r-graph-gallery.com/330-bubble-map-with-ggplot2.html
+https://www.datacamp.com/community/tutorials/neural-network-models-r
