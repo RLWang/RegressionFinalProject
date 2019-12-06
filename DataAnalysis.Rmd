@@ -17,10 +17,11 @@ The Dialect Survey uses a series of questions, including rhyming word pairs and 
 In this project, we would use these data to fit a KNN classification model showing predicted class membership at each location in the US based on dialect. Our explanatory variable is zipcode and response is dialect. In addition, our second analysis will be based on a topic we haven't learned in class such as, neural networks to help us cluster, classify and recognize patterns of the data.  
 
 ```{r}
-# Libraries
+##Libraries
 library(ggplot2)
 library(dplyr)
 library(readr)
+library(caret)
 dialect_survey<-read_csv("dialect_survey.csv")
 zip_codes<-read_csv("zipcodes.csv")
 
@@ -77,7 +78,7 @@ val_folds <- caret::createFolds(Data_train$Q014, k = 10)
 #Select K for K nearest neighbors classification 
 
 k_vals <- c(1:10, 25, 50, 75, 100, 150, 200, 250, 300)
-results <- expand.grid(
+results2 <- expand.grid(
     fold_ind = seq_len(10),
     k = k_vals,
     val_class_error = NA
@@ -88,7 +89,7 @@ for(i in seq_len(10)) {
   
   for(k in k_vals) {
     knn_fit <- train(
-      Q014 ~ ZIP,
+      form = Q014 ~LAT+LNG,
       data = train_data,
       method = "knn",
       preProcess = "scale",
@@ -100,11 +101,11 @@ for(i in seq_len(10)) {
     y_hats <- predict(knn_fit, newdata = val_data, type = "raw")
   
     # classification error rate
-    save_ind <- which(results$fold_ind == i & results$k == k)
-    results$val_class_error[save_ind] <- mean(y_hats != val_data$Q014)
+    save_ind <- which(results2$fold_ind == i & results2$k == k)
+    results2$val_class_error[save_ind] <- mean(y_hats != val_data$Q014)
   }
 }
-results %>%
+results2 %>%
   group_by(k) %>%
   summarize(mean(val_class_error))
 ```
