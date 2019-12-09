@@ -51,11 +51,13 @@ results<-results[!is.na(results$LAT) & !is.na(results$LNG), ]
 library(maps)
 USA <- map_data("world") %>% filter(region=="USA")
 
+results$Q014 = factor(results$Q014,
+                      levels = c("0","1","2","3","4"), labels=c("did not respond", "pronounced like 'boy' ", "pronounced like 'saw'", "use both interchangeably", "I don't know"))
 
 # Left chart
 g<-ggplot() +
   geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
-  geom_point(data=results, aes(x=LNG, y=LAT, color=Q014), size=0.1) + 
+  geom_point(data=results, aes(x=LNG, y=LAT, color=Q014), size=0.7) + 
   theme_void()+coord_map(xlim = c(-180, -50),ylim = c(18, 72))
 g
 
@@ -120,9 +122,26 @@ nn=neuralnet(Q014~LAT+LNG,data=results_tiny_train, hidden=3,act.fct = "logistic"
                 linear.output = FALSE)
 plot(nn)
 
+
 predict_nn=compute(nn, results_tiny_test)
 
 predict_nn$net.result
+
+
+nn2=neuralnet(Q014~LAT+LNG,data=Data_train, hidden=3,act.fct = "logistic",
+                linear.output = FALSE)
+plot(nn2)
+
+predict_nn2=compute(nn2, Data_test)
+
+predict_nn2$net.result
+
+pred<-predict(nn2, Data_test)
+
+nn_classification_error<- table(Data_test$Q014, apply(pred, 1, which.max))
+
+
+
 
 
 ```
