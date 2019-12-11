@@ -17,6 +17,8 @@ The Dialect Survey uses a series of questions, including rhyming word pairs and 
 In this project, we would use these data to fit a KNN classification model showing predicted class membership at each location in the US based on dialect. Our explanatory variable is zipcode and response is dialect. In addition, our second analysis will be based on a topic we haven't learned in class such as, neural networks to help us cluster, classify and recognize patterns of the data.  
 
 ```{r}
+#Question 14 
+
 ##Libraries
 library(ggplot2)
 library(dplyr)
@@ -145,6 +147,234 @@ nn_classification_error<- table(Data_test$Q014, apply(pred, 1, which.max))
 
 
 ```
+
+```{r}
+#Question 16 
+
+##Libraries
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(caret)
+dialect_survey<-read_csv("dialect_survey.csv")
+zip_codes<-read_csv("zipcodes.csv")
+
+##dataset with only ID, state, city, zip code, and answer to mayonnaise question
+mayonnaise_response<-dialect_survey[,c(1:4, 20)]
+
+for(i in seq_len(ncol(mayonnaise_response))){
+  print(names(mayonnaise_response)[i])
+  print(sum(is.na(mayonnaise_response[[i]])))
+}
+
+##we examined whether there are missing values and found 3 pieces of missing data for state, and 537 for city. However, there are no missing data values for zip code. We will use zip code as our explanatory variable.
+
+##cleaned up our data: got rid of city and ID
+mayonnaise_response<-dialect_survey[,c(3, 4, 20)]
+
+mayonnaise_response_cleaned<-mutate(mayonnaise_response, ZIP=substr(ZIP, 2, 6))
+mayonnaise_response_cleaned
+
+results_mayonnaise<-left_join(x=mayonnaise_response_cleaned, y=zip_codes, by="ZIP", copy=FALSE)
+results_mayonnaise<-results_mayonnaise[!is.na(results_mayonnaise$LAT) & !is.na(results_mayonnaise$LNG), ]
+
+
+
+
+# Get the world polygon and extract USA
+library(maps)
+USA <- map_data("world") %>% filter(region=="USA")
+
+results_mayonnaise$Q016 = factor(results_mayonnaise$Q016,
+                      levels = c("0","1","2","3","4"))
+
+# Left chart
+g<-ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
+  geom_point(data=results_mayonnaise, aes(x=LNG, y=LAT, color=Q016), size=0.7) + 
+  theme_void()+coord_map(xlim = c(-180, -50),ylim = c(18, 72))
+g
+
+results_mayonnaise %>% group_by(Q016)%>% count()
+
+
+#KNN Classification Model
+
+library(ISLR)
+
+results_mayonnaise$Q016 = factor(results_mayonnaise$Q016,
+                      levels = c("0","1","2","3","4"))
+
+set.seed(87053)
+train_inds_mayonnaise <- caret::createDataPartition(results_mayonnaise$Q016, p = 0.8)
+Data_train_mayonnaise <- results_mayonnaise %>% dplyr::slice(train_inds_mayonnaise[[1]])
+Data_test_mayonnaise <- results_mayonnaise %>% dplyr::slice(-train_inds_mayonnaise[[1]])
+val_folds_mayonnaise <- caret::createFolds(Data_train_mayonnaise$Q016, k = 10)
+
+#Select K for K nearest neighbors classification 
+
+k_vals <- c(1:10, 25, 50, 75, 100, 150, 200, 250, 300)
+results2_mayonnaise <- expand.grid(
+    fold_ind = seq_len(10),
+    k = k_vals,
+    val_class_error = NA
+  )
+for(i in seq_len(10)) {
+  train_data_mayonnaise <- Data_train_mayonnaise %>% dplyr::slice(-val_folds_mayonnaise[[i]])
+  val_data_mayonnaise <- Data_train_mayonnaise %>% dplyr::slice(val_folds_mayonnaise[[i]])
+  
+  for(k in k_vals) {
+    knn_fit_mayonnaise <- train(
+      form = Q016 ~LAT+LNG,
+      data = train_data_mayonnaise,
+      method = "knn",
+      preProcess = "scale",
+      trControl = trainControl(method = "none"),
+      tuneGrid = data.frame(k = k)
+    )
+    
+    # get predicted values
+    y_hats <- predict(knn_fit_mayonnaise, newdata = val_data_mayonnaise, type = "raw")
+  
+    # classification error rate
+    save_ind <- which(results2_mayonnaise$fold_ind == i & results2_mayonnaise$k == k)
+    results2_mayonnaise$val_class_error[save_ind] <- mean(y_hats != val_data_mayonnaise$Q016)
+  }
+}
+results2_mayonnaise %>%
+  group_by(k) %>%
+  summarize(mean(val_class_error))
+
+##Neural Network
+library(neuralnet)
+
+nn2_mayonnaise=neuralnet(Q016~LAT+LNG,data=Data_train_mayonnaise, hidden=3,act.fct = "logistic",
+                linear.output = FALSE)
+plot(nn2_mayonnaise)
+
+predict_nn2_mayonnaise=compute(nn2_mayonnaise, Data_test_mayonnaise)
+
+predict_nn2_mayonnaise$net.result
+
+pred_mayonnaise<-predict(nn2_mayonnaise, Data_test_mayonnaise)
+
+nn_classification_error_mayonnaise<- table(Data_test_mayonnaise$Q016, apply(pred_mayonnaise, 1, which.max))
+```
+```{r}
+#Question 20 
+
+##Libraries
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(caret)
+dialect_survey<-read_csv("dialect_survey.csv")
+zip_codes<-read_csv("zipcodes.csv")
+
+##dataset with only ID, state, city, zip code, and answer to pajamas question
+pajamas_response<-dialect_survey[,c(1:4, 24)]
+
+for(i in seq_len(ncol(pajamas_response))){
+  print(names(pajamas_response)[i])
+  print(sum(is.na(pajamas_response[[i]])))
+}
+
+##we examined whether there are missing values and found 3 pieces of missing data for state, and 537 for city. However, there are no missing data values for zip code. We will use zip code as our explanatory variable.
+
+##cleaned up our data: got rid of city and ID
+pajamas_response<-dialect_survey[,c(3, 4, 24)]
+
+pajamas_response_cleaned<-mutate(pajamas_response, ZIP=substr(ZIP, 2, 6))
+pajamas_response_cleaned
+
+results_pajamas<-left_join(x=pajamas_response_cleaned, y=zip_codes, by="ZIP", copy=FALSE)
+results_pajamas<-results_pajamas[!is.na(results_pajamas$LAT) & !is.na(results_pajamas$LNG), ]
+
+
+
+
+# Get the world polygon and extract USA
+library(maps)
+USA <- map_data("world") %>% filter(region=="USA")
+
+results_pajamas$Q020 = factor(results_pajamas$Q020,
+                      levels = c("0","1","2","3"))
+
+# Left chart
+g<-ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
+  geom_point(data=results_pajamas, aes(x=LNG, y=LAT, color=Q020), size=0.7) + 
+  theme_void()+coord_map(xlim = c(-180, -50),ylim = c(18, 72))
+g
+
+results_pajamas %>% group_by(Q020)%>% count()
+
+
+#KNN Classification Model
+
+library(ISLR)
+
+results_pajamas$Q020 = factor(results_pajamas$Q020,
+                      levels = c("0","1","2","3"))
+
+set.seed(87053)
+train_inds_pajamas <- caret::createDataPartition(results_pajamas$Q020, p = 0.8)
+Data_train_pajamas <- results_pajamas %>% dplyr::slice(train_inds_pajamas[[1]])
+Data_test_pajamas <- results_pajamas %>% dplyr::slice(-train_inds_pajamas[[1]])
+val_folds_pajamas <- caret::createFolds(Data_train_pajamas$Q020, k = 10)
+
+#Select K for K nearest neighbors classification 
+
+k_vals <- c(1:10, 25, 50, 75, 100, 150, 200, 250, 300)
+results2_pajamas <- expand.grid(
+    fold_ind = seq_len(10),
+    k = k_vals,
+    val_class_error = NA
+  )
+for(i in seq_len(10)) {
+  train_data_pajamas <- Data_train_pajamas %>% dplyr::slice(-val_folds_pajamas[[i]])
+  val_data_pajamas <- Data_train_pajamas %>% dplyr::slice(val_folds_pajamas[[i]])
+  
+  for(k in k_vals) {
+    knn_fit_pajamas <- train(
+      form = Q020 ~LAT+LNG,
+      data = train_data_pajamas,
+      method = "knn",
+      preProcess = "scale",
+      trControl = trainControl(method = "none"),
+      tuneGrid = data.frame(k = k)
+    )
+    
+    # get predicted values
+    y_hats <- predict(knn_fit_pajamas, newdata = val_data_pajamas, type = "raw")
+  
+    # classification error rate
+    save_ind <- which(results2_pajamas$fold_ind == i & results2_pajamas$k == k)
+    results2_pajamas$val_class_error[save_ind] <- mean(y_hats != val_data_pajamas$Q020)
+  }
+}
+results2_pajamas %>%
+  group_by(k) %>%
+  summarize(mean(val_class_error))
+
+##Neural Network
+library(neuralnet)
+
+nn2_pajamas=neuralnet(Q020~LAT+LNG,data=Data_train_pajamas, hidden=3,act.fct = "logistic",
+                linear.output = FALSE)
+plot(nn2_pajamas)
+
+predict_nn2_pajamas=compute(nn2_pajamas, Data_test_pajamas)
+
+predict_nn2_pajamas$net.result
+
+pred_pajamas<-predict(nn2_pajamas, Data_test_pajamas)
+
+nn_classification_error_pajamas<- table(Data_test_pajamas$Q020, apply(pred_pajamas, 1, which.max))
+```
+
+
+
 
 ##https://www.r-graph-gallery.com/330-bubble-map-with-ggplot2.html
 https://www.datacamp.com/community/tutorials/neural-network-models-r
