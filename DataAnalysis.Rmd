@@ -52,7 +52,7 @@ library(maps)
 USA <- map_data("world") %>% filter(region=="USA")
 
 results$Q014 = factor(results$Q014,
-                      levels = c("0","1","2","3","4"), labels=c("did not respond", "pronounced like 'boy' ", "pronounced like 'saw'", "use both interchangeably", "I don't know"))
+                      levels = c("0","1","2","3","4"))
 
 # Left chart
 g<-ggplot() +
