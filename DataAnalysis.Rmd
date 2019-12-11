@@ -204,6 +204,7 @@ library(ISLR)
 
 results_mayonnaise$Q016 = factor(results_mayonnaise$Q016,
                       levels = c("0","1","2","3","4"))
+results_mayonnaise<-sample_n(results_mayonnaise, 20000)
 
 set.seed(87053)
 train_inds_mayonnaise <- caret::createDataPartition(results_mayonnaise$Q016, p = 0.8)
@@ -223,15 +224,18 @@ for(i in seq_len(10)) {
   train_data_mayonnaise <- Data_train_mayonnaise %>% dplyr::slice(-val_folds_mayonnaise[[i]])
   val_data_mayonnaise <- Data_train_mayonnaise %>% dplyr::slice(val_folds_mayonnaise[[i]])
   
+  knn3Train()
+  
   for(k in k_vals) {
-    knn_fit_mayonnaise <- train(
+    knn_fit_mayonnaise <- knn3train(train(
       form = Q016 ~LAT+LNG,
       data = train_data_mayonnaise,
       method = "knn",
       preProcess = "scale",
       trControl = trainControl(method = "none"),
       tuneGrid = data.frame(k = k)
-    )
+    ), use.all=TRUE) 
+    
     
     # get predicted values
     y_hats <- predict(knn_fit_mayonnaise, newdata = val_data_mayonnaise, type = "raw")
@@ -249,10 +253,10 @@ results2_mayonnaise %>%
 library(neuralnet)
 
 nn2_mayonnaise=neuralnet(Q016~LAT+LNG,data=Data_train_mayonnaise, hidden=3,act.fct = "logistic",
-                linear.output = FALSE)
+                linear.output = FALSE, threshold = 0.1)
 plot(nn2_mayonnaise)
 
-predict_nn2_mayonnaise=compute(nn2_mayonnaise, Data_test_mayonnaise)
+predict_nn2_mayonnaise=neuralnet::compute(nn2_mayonnaise, Data_test_mayonnaise)
 
 predict_nn2_mayonnaise$net.result
 
@@ -313,9 +317,12 @@ results_pajamas %>% group_by(Q020)%>% count()
 #KNN Classification Model
 
 library(ISLR)
+library(dplyr)
 
 results_pajamas$Q020 = factor(results_pajamas$Q020,
                       levels = c("0","1","2","3"))
+
+results_pajamas<-sample_n(results_pajamas, 20000)
 
 set.seed(87053)
 train_inds_pajamas <- caret::createDataPartition(results_pajamas$Q020, p = 0.8)
@@ -361,10 +368,10 @@ results2_pajamas %>%
 library(neuralnet)
 
 nn2_pajamas=neuralnet(Q020~LAT+LNG,data=Data_train_pajamas, hidden=3,act.fct = "logistic",
-                linear.output = FALSE)
+                linear.output = FALSE, threshold = 0.1)
 plot(nn2_pajamas)
 
-predict_nn2_pajamas=compute(nn2_pajamas, Data_test_pajamas)
+predict_nn2_pajamas=neuralnet::compute(nn2_pajamas, Data_test_pajamas)
 
 predict_nn2_pajamas$net.result
 
