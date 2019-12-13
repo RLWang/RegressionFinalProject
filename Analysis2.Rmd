@@ -1,0 +1,263 @@
+---
+title: "Dialect Survey Analysis"
+author: "Katerina, Remy, Helena"
+date: "12/12/2019"
+output: pdf_document
+header-includes:
+   - \usepackage{booktabs}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+##constant for all questions
+set.seed(87053)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(caret)
+library(maps)
+library(neuralnet)
+
+dialect_survey<-read_csv("dialect_survey.csv")
+zip_codes<-read_csv("zipcodes.csv")
+
+for(i in seq_len(ncol(dialect_survey))){
+  print(names(dialect_survey)[i])
+  print(sum(is.na(dialect_survey[[i]])))
+}
+
+##we examined whether there are missing values and found 3 pieces of missing data for state, and 537 for city. However, there are no missing data values for zip code. We will use zip code to match responses with latitude and longitude. We will be using latitude and longitude as explanatory variables later on. 
+
+all_responses<-dialect_survey[,-c(1,2,3)]
+
+all_responses<-mutate(all_responses, ZIP=substr(ZIP, 2, 6))
+all_responses
+
+survey<-left_join(x=all_responses, y=zip_codes, by="ZIP", copy=FALSE)
+survey<-survey[!is.na(survey$LAT) & !is.na(survey$LNG), ]
+survey[,2:123]<-lapply(survey[,2:123], factor)  
+
+survey_subset<-sample_n(survey, 5000)
+
+
+train_inds <- caret::createDataPartition(survey_subset$Q014, p = 0.8)
+Data_train <- survey_subset %>% dplyr::slice(train_inds[[1]])
+Data_test <- survey_subset %>% dplyr::slice(-train_inds[[1]])
+val_folds <- caret::createFolds(Data_train$Q014, k = 10)
+
+
+train_sds <- apply(Data_train %>% select(LAT, LNG), 2, sd)
+Data_train <- Data_train %>%
+  mutate(
+    LAT = LAT / train_sds["LAT"],
+    LNG = LNG / train_sds["LNG"]
+  )
+
+Data_test <- Data_test %>%
+  mutate(
+    LAT = LAT / train_sds["LAT"],
+    LNG = LNG / train_sds["LNG"]
+  )
+```
+
+```{r}
+#Question 14-Lawyer Question
+
+USA <- map_data("world") %>% filter(region=="USA")
+
+survey$Q014 = factor(survey$Q014,
+                      levels = c("0","1","2","3","4"), labels=c("did not respond", "pronounced like boy ('loyer')", "pronounced like saw ('law-yer')", "use both interchangeably", "other"))
+
+# exploratory plot
+g1<-ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
+  geom_point(data=survey, aes(x=LNG, y=LAT, color=Q014), size=0.7) + 
+  theme_void()+coord_map(xlim = c(-180, -50),ylim = c(18, 72))+labs(color="lawyer")+theme(legend.title = element_text(size = 16), legend.text = element_text(size = 10)) + guides(colour = guide_legend(override.aes = list(size=1.5))) 
+
+g1
+
+survey %>% group_by(Q014)%>% count()
+
+k_vals <- c(1:10, 25, 50, 75, 100, 150, 200, 250, 300)
+results2 <- expand.grid(
+    fold_ind = seq_len(10),
+    k = k_vals,
+    val_class_error = NA
+  )
+
+for(i in seq_len(10)) {
+  train_data <- Data_train %>% dplyr::slice(-val_folds[[i]])
+  val_data <- Data_train %>% dplyr::slice(val_folds[[i]])
+  
+  for(k in k_vals) {
+    knn_fit <- train(
+      form = Q014 ~LAT+LNG,
+      data = train_data,
+      method = "knn",
+      preProcess = "scale",
+      trControl = trainControl(method = "none"),
+      tuneGrid = data.frame(k = k)
+    )
+    
+    # get predicted values
+    y_hats <- predict(knn_fit, newdata = val_data, type = "raw")
+  
+    # classification error rate
+    save_ind <- which(results2$fold_ind == i & results2$k == k)
+    results2$val_class_error[save_ind] <- mean(y_hats != val_data$Q014)
+  }
+}
+results2 %>%
+  group_by(k) %>%
+  summarize(mean(val_class_error))
+
+
+
+nn1<-neuralnet(Q014~LAT+LNG,data=Data_train, hidden=3,act.fct = "logistic",
+                linear.output = FALSE, threshold = 0.1)
+plot(nn1, rep="best")
+
+
+predict_nn1=neuralnet::compute(nn1, Data_test)
+
+predict_nn1$net.result
+
+pred<-predict(nn1, Data_test)
+
+nn_classification_error<- table(Data_test$Q014, apply(pred, 1, which.max))
+nn_classification_error
+```
+```{r}
+#Question 16 -Mayonnaise Question
+
+USA <- map_data("world") %>% filter(region=="USA")
+
+survey$Q016 = factor(survey$Q016,
+                      levels = c("0","1","2","3","4"), labels=c("did not respond", "with 3 syllables ('may-uh-naze')", "like 'man' ('man-aze')", "use both interchangeably", "other"))
+
+# exploratory plot
+g2<-ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
+  geom_point(data=survey, aes(x=LNG, y=LAT, color=Q016), size=0.7) + 
+  theme_void()+coord_map(xlim = c(-180, -50),ylim = c(18, 72))+labs(color="mayonnaise")+theme(legend.title = element_text(size = 16), legend.text = element_text(size = 10)) + guides(colour = guide_legend(override.aes = list(size=1.5))) 
+
+g2
+
+survey %>% group_by(Q016)%>% count()
+
+results2 <- expand.grid(
+    fold_ind = seq_len(10),
+    k = k_vals,
+    val_class_error = NA
+  )
+
+for(i in seq_len(10)) {
+  train_data <- Data_train %>% dplyr::slice(-val_folds[[i]])
+  val_data <- Data_train %>% dplyr::slice(val_folds[[i]])
+  
+  for(k in k_vals) {
+    knn_fit <- train(
+      form = Q016 ~LAT+LNG,
+      data = train_data,
+      method = "knn",
+      preProcess = "scale",
+      trControl = trainControl(method = "none"),
+      tuneGrid = data.frame(k = k)
+    )
+    
+    # get predicted values
+    y_hats <- predict(knn_fit, newdata = val_data, type = "raw")
+  
+    # classification error rate
+    save_ind <- which(results2$fold_ind == i & results2$k == k)
+    results2$val_class_error[save_ind] <- mean(y_hats != val_data$Q016)
+  }
+}
+results2 %>%
+  group_by(k) %>%
+  summarize(mean(val_class_error))
+
+nn2<-neuralnet(Q016~LAT+LNG,data=Data_train, hidden=3,act.fct = "logistic",
+                linear.output = FALSE, threshold = 0.1)
+plot(nn2, rep="best")
+
+predict_nn2=neuralnet::compute(nn2, Data_test)
+
+predict_nn2$net.result
+
+pred<-predict(nn2, Data_test)
+
+nn_classification_error<- table(Data_test$Q016, apply(pred, 1, which.max))
+nn_classification_error
+```
+
+```{r}
+#Question 20 -Pajamas Question
+
+USA <- map_data("world") %>% filter(region=="USA")
+
+survey$Q020 = factor(survey$Q020,
+                      factor(results_pajamas$Q020,
+                      levels = c("0","1","2","3"), labels=c("did not respond", "like 'father'", "like 'jam'", "other")))
+
+# exploratory plot
+g3<-ggplot() +
+  geom_polygon(data = USA, aes(x=long, y = lat, group = group), fill="grey") +
+  geom_point(data=survey, aes(x=LNG, y=LAT, color=Q020), size=0.7) + 
+  theme_void()+coord_map(xlim = c(-180, -50),ylim = c(18, 72))+labs(color="second vowel in 'pajamas'")+theme(legend.title = element_text(size = 16), legend.text = element_text(size = 10)) + guides(colour = guide_legend(override.aes = list(size=1.5))) 
+
+g3
+
+survey %>% group_by(Q020)%>% count()
+
+results2 <- expand.grid(
+    fold_ind = seq_len(10),
+    k = k_vals,
+    val_class_error = NA
+  )
+
+for(i in seq_len(10)) {
+  train_data <- Data_train %>% dplyr::slice(-val_folds[[i]])
+  val_data <- Data_train %>% dplyr::slice(val_folds[[i]])
+  
+  for(k in k_vals) {
+    knn_fit <- train(
+      form = Q020 ~LAT+LNG,
+      data = train_data,
+      method = "knn",
+      preProcess = "scale",
+      trControl = trainControl(method = "none"),
+      tuneGrid = data.frame(k = k)
+    )
+    
+    # get predicted values
+    y_hats <- predict(knn_fit, newdata = val_data, type = "raw")
+  
+    # classification error rate
+    save_ind <- which(results2$fold_ind == i & results2$k == k)
+    results2$val_class_error[save_ind] <- mean(y_hats != val_data$Q020)
+  }
+}
+results2 %>%
+  group_by(k) %>%
+  summarize(mean(val_class_error))
+
+nn3<-neuralnet(Q020~LAT+LNG,data=Data_train, hidden=3,act.fct = "logistic",
+                linear.output = FALSE, threshold = 0.1)
+plot(nn3, rep="best")
+
+predict_nn3=neuralnet::compute(nn3, Data_test)
+
+predict_nn3$net.result
+
+pred<-predict(nn3, Data_test)
+
+nn_classification_error<- table(Data_test$Q020, apply(pred, 1, which.max))
+nn_classification_error
+```
+
+
